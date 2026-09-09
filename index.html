@@ -40,6 +40,14 @@
   #joy{position:fixed;bottom:36px;left:30px;width:110px;height:110px;border-radius:50%;border:1px solid rgba(232,226,212,.35);display:none;z-index:15;}
   #joyKnob{position:absolute;left:35px;top:35px;width:40px;height:40px;border-radius:50%;background:rgba(232,226,212,.25);}
   .credit{position:absolute;bottom:20px;font-size:11px;letter-spacing:.2em;opacity:.4;}
+
+  body:after{content:"";position:fixed;inset:0;z-index:7;pointer-events:none;opacity:.14;mix-blend-mode:soft-light;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.8'/%3E%3C/svg%3E");animation:grain .18s steps(2) infinite}
+  body:before{content:"";position:fixed;inset:0;z-index:8;pointer-events:none;border-top:clamp(12px,3.5vh,38px) solid #030303;border-bottom:clamp(12px,3.5vh,38px) solid #030303;box-sizing:border-box;box-shadow:inset 0 0 120px rgba(0,0,0,.8)}
+  @keyframes grain{0%{transform:translate(0)}25%{transform:translate(-2%,1%)}50%{transform:translate(1%,-2%)}75%{transform:translate(2%,2%)}100%{transform:translate(-1%,1%)}}
+  .screen{background:linear-gradient(180deg,rgba(5,4,3,.72),rgba(9,6,2,.93))!important;backdrop-filter:blur(8px)}
+  h1,h2{color:#f2c77b;text-shadow:0 0 36px rgba(224,142,35,.28)}
+  .btn{border-color:#9b7136!important;color:#e7bd77!important;background:rgba(30,18,6,.25)!important}
+  .btn:hover{background:rgba(181,112,25,.2)!important;box-shadow:0 0 40px rgba(214,137,38,.12)}
 </style>
 </head>
 <body>
@@ -108,11 +116,12 @@ She will make a Shaper yet.</div>
 import * as THREE from 'three';
 
 const canvas = document.getElementById('c');
-const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true, powerPreference:'high-performance'});
 renderer.setPixelRatio(Math.min(devicePixelRatio,2));
 renderer.setSize(innerWidth, innerHeight);
+renderer.outputColorSpace=THREE.SRGBColorSpace; renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.05; renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(72, innerWidth/innerHeight, .1, 600);
+const camera = new THREE.PerspectiveCamera(64, innerWidth/innerHeight, .1, 600);
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
 
 // ---------- audio ----------
@@ -199,12 +208,12 @@ const SESSIONS=[
  { name:'SESSION I — THE CLERK', patient:'Mr. Ansel Voss, 51. Actuarial clerk.',
    body:'He dreams the same dream every night: an endless grey plain,\nbroken columns, a clock that stopped at the hour of his birth.\nDiagnosis: a life unwitnessed. Shape the anchors.\nTeach the ruin it was once a temple.',
    build:'ruins', drain:1.0, sharkAggro:.6,
-   fog:0x272b35, fogFar:130, sky:0x1a1e28, ground:0x363b46, accent:0x8fa3c4, warm:0x3a3f52,
+   fog:0x1b1007, fogFar:155, sky:0x070401, ground:0x17100a, accent:0xff9b2f, warm:0x5c2605,
    win:'The clerk wakes remembering his own name.\nThe columns stand. The clock, impossibly, ticks.'},
  { name:'SESSION II — THE AVIATRIX', patient:'Ms. Rilla Kane, 34. Test pilot, grounded.',
    body:'She fell once, and the sky has not forgiven her.\nHer dream is a carnival above the clouds — rings, islands,\neverything bright and nothing held. Shape the anchors.\nShow her the sky still holds what flies in it.',
    build:'sky', drain:1.35, sharkAggro:1.0,
-   fog:0x2a1830, fogFar:140, sky:0x1c0f26, ground:0x34203c, accent:0xe2a86a, warm:0x54304a,
+   fog:0x211006, fogFar:155, sky:0x090401, ground:0x1c1008, accent:0xffb33f, warm:0x702803,
    win:'She wakes laughing — the first time in two years.\nSomewhere above the cloud-line, a ring keeps turning.'},
  { name:'SESSION III — EILEEN SHALLOT', patient:'Miss Eileen Shallot, 27. Blind from birth.',
    body:'She does not want to be healed. She wants to be a Shaper —\nto do for others what was done for her, though she has\nnever seen the things she would shape. Tonight you give her\nthe sea. Beware: what swims in it is hers and yours both.',
@@ -217,9 +226,9 @@ const SESSIONS=[
 let worldGroup=null, anchors=[], shark=null, particles=null;
 let gameState='title', sessIdx=0, coherence=100, shaped=0, time=0, lunging=false, shake=0, shapeHeldT=0;
 
-const hemi = new THREE.HemisphereLight(0xffffff, 0x445566, 1.3);
+const hemi = new THREE.HemisphereLight(0xffc56e, 0x030303, .32);
 scene.add(hemi);
-const dirL = new THREE.DirectionalLight(0xffffff, .75);
+const dirL = new THREE.DirectionalLight(0xffb24c, 1.8); dirL.castShadow=true; dirL.shadow.mapSize.set(1024,1024);
 dirL.position.set(20,40,10); scene.add(dirL);
 
 function clearWorld(){
@@ -232,20 +241,69 @@ function clearWorld(){
   anchors=[]; shark=null; particles=null;
 }
 function makeGround(color, r){
-  const g=new THREE.CircleGeometry(r||90, 64);
+  const g=new THREE.PlaneGeometry((r||90)*2,(r||90)*2,48,48);
   const pos=g.attributes.position;
-  for(let i=0;i<pos.count;i++){
-    const x=pos.getX(i), y=pos.getY(i);
-    pos.setZ(i,(Math.sin(x*.14)*Math.cos(y*.17)+Math.sin(x*.05+y*.08))*.8);
-  }
+  for(let i=0;i<pos.count;i++){const x=pos.getX(i), y=pos.getY(i);pos.setZ(i,Math.sin(x*.055)*Math.cos(y*.07)*.13);}
   g.computeVertexNormals();
-  const m=new THREE.Mesh(g,new THREE.MeshStandardMaterial({color,roughness:.9,metalness:.05}));
-  m.rotation.x=-Math.PI/2; worldGroup.add(m); return m;
+  const m=new THREE.Mesh(g,new THREE.MeshStandardMaterial({color,roughness:.2,metalness:.62,envMapIntensity:1.2}));
+  m.rotation.x=-Math.PI/2;m.position.y=-.06;m.receiveShadow=true;worldGroup.add(m);return m;
+}
+function mannequin(x,z,scale=1,pose=0){
+  const G=new THREE.Group(), mat=new THREE.MeshStandardMaterial({color:0x15120e,roughness:.3,metalness:.42,emissive:0x2a1303,emissiveIntensity:.18});
+  const head=new THREE.Mesh(new THREE.SphereGeometry(.38,18,14),mat);head.scale.y=1.18;head.position.y=3.25;G.add(head);
+  const torso=new THREE.Mesh(new THREE.CapsuleGeometry(.48,1.25,8,12),mat);torso.position.y=2.15;G.add(torso);
+  const hip=new THREE.Mesh(new THREE.SphereGeometry(.5,14,10),mat);hip.scale.y=.55;hip.position.y=1.25;G.add(hip);
+  for(const sx of [-1,1]){const arm=new THREE.Mesh(new THREE.CapsuleGeometry(.13,1.35,6,8),mat);arm.position.set(sx*.62,2.1,0);arm.rotation.z=sx*(.2+pose*.4);G.add(arm);const leg=new THREE.Mesh(new THREE.CapsuleGeometry(.17,1.5,6,8),mat);leg.position.set(sx*.25,.35,0);leg.rotation.z=sx*.04;G.add(leg);}
+  G.position.set(x,0,z);G.scale.setScalar(scale);G.rotation.y=pose;G.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});worldGroup.add(G);return G;
+}
+function brutalistDream(def){
+  const amber=new THREE.MeshStandardMaterial({color:0x241505,roughness:.28,metalness:.5,emissive:0x6a3105,emissiveIntensity:.28});
+  const black=new THREE.MeshStandardMaterial({color:0x080706,roughness:.72,metalness:.15});
+  const glow=new THREE.MeshBasicMaterial({color:def.build==='sea'?0x8fb8c9:0xffa62f,transparent:true,opacity:.09,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending});
+  // monumental procession, framing a bright unreachable horizon
+  for(const side of [-1,1]) for(let i=0;i<9;i++){
+    const z=10-i*13, h=12+(i%3)*5;
+    const p=new THREE.Mesh(new THREE.BoxGeometry(2.8,h,6.5),i%2?amber:black);p.position.set(side*(11+(i%2)*3),h/2-1,z);p.castShadow=true;p.receiveShadow=true;worldGroup.add(p);
+    const cap=new THREE.Mesh(new THREE.BoxGeometry(10,1.2,7),black);cap.position.set(side*10.5,h-1,z);cap.castShadow=true;worldGroup.add(cap);
+  }
+  for(let i=0;i<6;i++){const beam=new THREE.Mesh(new THREE.PlaneGeometry(12,38),glow.clone());beam.position.set((i-2.5)*5.5,12,-30-i*8);beam.rotation.x=-.16;beam.rotation.y=(i-2.5)*.08;worldGroup.add(beam);}
+  const portal=new THREE.Mesh(new THREE.PlaneGeometry(17,19),new THREE.MeshBasicMaterial({color:def.build==='sea'?0x92c4d9:0xffad37}));portal.position.set(0,8,-108);worldGroup.add(portal);
+  const back=new THREE.Mesh(new THREE.BoxGeometry(70,34,5),black);back.position.set(0,12,-113);worldGroup.add(back);
+  const pool=new THREE.Mesh(new THREE.PlaneGeometry(18,120),new THREE.MeshPhysicalMaterial({color:0x160b02,metalness:.95,roughness:.06,clearcoat:1,clearcoatRoughness:.08,transparent:true,opacity:.82}));pool.rotation.x=-Math.PI/2;pool.position.set(0,.02,-40);worldGroup.add(pool);worldGroup.userData.pool=pool;
+  for(let i=0;i<7;i++) mannequin((i%2?1:-1)*(5.5+(i%3)*1.7),-6-i*14,.9+(i%2)*.25,(i%2?-.3:.3));
+  const sun=new THREE.PointLight(def.build==='sea'?0x9bd9ff:0xff922b,280,150,1.4);sun.position.set(0,14,-90);sun.castShadow=true;worldGroup.add(sun);
+  const sideLight=new THREE.PointLight(0xffc15a,70,55,2);sideLight.position.set(-13,5,-20);worldGroup.add(sideLight);
+  worldGroup.userData.mannequins=worldGroup.children.filter(o=>o.type==='Group');
+  // silicon fairy: luminous waveform spire forest flanking the hall
+  const spireMat=new THREE.MeshBasicMaterial({color:def.build==='sea'?0xbfe6f5:0xffd9a0});
+  const spires=new THREE.InstancedMesh(new THREE.BoxGeometry(.09,1,.09),spireMat,170);
+  const dummy=new THREE.Object3D(); worldGroup.userData.spireData=[];
+  for(let i=0;i<170;i++){
+    const side=i%2?1:-1, lane=14+(i%5)*2.1+Math.random()*1.2, z=12-Math.floor(i/5)*4.6+Math.random()*2;
+    const base=1.5+Math.abs(Math.sin(i*1.7))*5, ph=Math.random()*6.28;
+    dummy.position.set(side*lane,base/2,z); dummy.scale.set(1,base,1); dummy.updateMatrix();
+    spires.setMatrixAt(i,dummy.matrix);
+    worldGroup.userData.spireData.push({x:side*lane,z,base,ph});
+  }
+  spires.instanceMatrix.setUsage(THREE.DynamicDrawUsage); worldGroup.add(spires); worldGroup.userData.spires=spires;
+  // ring mandala at the horizon portal, slow machine of light
+  const mandala=new THREE.Group(); const mCol=def.build==='sea'?0xa8d8ec:0xffbe5a;
+  for(let r=0;r<5;r++){
+    const ring=new THREE.Mesh(new THREE.TorusGeometry(2.2+r*1.35,.05+r*.015,8,72),
+      new THREE.MeshBasicMaterial({color:mCol,transparent:true,opacity:.5-r*.07,blending:THREE.AdditiveBlending,depthWrite:false}));
+    ring.userData.spin=(r%2?1:-1)*(.08+r*.05); mandala.add(ring);
+  }
+  for(let k=0;k<12;k++){
+    const spoke=new THREE.Mesh(new THREE.BoxGeometry(.06,8.6,.06),new THREE.MeshBasicMaterial({color:mCol,transparent:true,opacity:.28,blending:THREE.AdditiveBlending,depthWrite:false}));
+    spoke.rotation.z=k/12*Math.PI*2; mandala.add(spoke);
+  }
+  mandala.position.set(0,8,-104); worldGroup.add(mandala); worldGroup.userData.mandala=mandala;
 }
 function addAnchor(x,y,z,accent){
   const geos=[new THREE.IcosahedronGeometry(.9,0), new THREE.TorusGeometry(.8,.22,10,24), new THREE.OctahedronGeometry(1)];
   const m=new THREE.Mesh(geos[anchors.length%3],
-    new THREE.MeshStandardMaterial({color:0x111111,emissive:accent,emissiveIntensity:2.0,roughness:.3}));
+    new THREE.MeshPhysicalMaterial({color:accent,emissive:accent,emissiveIntensity:.55,roughness:.12,metalness:0,
+      transmission:.72,thickness:1.6,ior:1.35,clearcoat:1,clearcoatRoughness:.25}));
   m.position.set(x,y,z);
   m.userData={shaped:false,progress:0,baseY:y,spin:.3+Math.random()*.5};
   worldGroup.add(m); anchors.push(m);
@@ -276,6 +334,7 @@ function buildWorld(def){
   scene.fog=new THREE.Fog(def.fog,8,def.fogFar);
   scene.background=new THREE.Color(def.sky);
   const A=def.accent;
+  brutalistDream(def);
   if(def.build==='sea'){
     makeGround(0x000000,1); // placeholder removed below
     worldGroup.remove(worldGroup.children[worldGroup.children.length-1]);
@@ -477,10 +536,10 @@ function animate(){
       promptEl.style.opacity=1;
       if(shapeKey){
         target.userData.progress+=dt/1.6;
-        target.scale.setScalar(1+Math.sin(time*20)*.08);
+        const w=Math.sin(time*14); target.scale.set(1+w*.22,1-w*.26,1+w*.22); target.rotation.y+=dt*3;
         if(target.userData.progress>=1){
           target.userData.shaped=true; shaped++;
-          target.material.emissive.set(0xffe9a8); target.material.emissiveIntensity=2.2;
+          target.material.emissive.set(0xffe9a8); target.material.emissiveIntensity=2.2; target.material.transmission=0; target.material.color.set(0x2a1a08);
           chime(520+shaped*90);
           coherence=Math.min(100,coherence+16);
           $('anchors').textContent='ANCHORS '+shaped+' / '+anchors.length;
@@ -497,7 +556,7 @@ function animate(){
         }
       } else {
         target.userData.progress=Math.max(0,target.userData.progress-dt*.5);
-        target.scale.setScalar(1);
+        const r=target.userData.progress; target.scale.setScalar(1+Math.sin(time*10)*r*.1);
       }
     } else {
       promptEl.style.opacity=0;
@@ -513,6 +572,12 @@ function animate(){
     const ud=worldGroup.userData;
     if(ud.isles) for(const is of ud.isles){ is.position.y=10+Math.sin(time*.5+is.userData.ph)*1.5+is.userData.ph; }
     if(ud.rings) for(const r of ud.rings){ r.rotation.z+=dt*r.userData.spin; }
+    if(ud.mannequins) ud.mannequins.forEach((m,i)=>{m.rotation.y+=Math.sin(time*.15+i)*dt*.015;});
+    if(ud.spires){ const d=new THREE.Object3D(); for(let i=0;i<ud.spireData.length;i++){ const sp=ud.spireData[i];
+      const h=sp.base*(0.7+0.45*Math.abs(Math.sin(time*.9+sp.ph))+ (s.visible? .3*Math.sin(time*6+sp.ph)*near:0));
+      d.position.set(sp.x,h/2,sp.z); d.scale.set(1,h,1); d.updateMatrix(); ud.spires.setMatrixAt(i,d.matrix);} ud.spires.instanceMatrix.needsUpdate=true; }
+    if(ud.mandala){ ud.mandala.rotation.z+=dt*.05; ud.mandala.children.forEach(c=>{ if(c.userData.spin) c.rotation.z+=dt*c.userData.spin; }); }
+    if(ud.pool){ud.pool.material.opacity=.76+Math.sin(time*.32)*.05;}
     if(ud.water){ ud.water.position.y=-1.2+Math.sin(time*.8)*.12; ud.water.rotation.z+=dt*.01; }
     if(ud.clock && shaped>=anchors.length-0){ /* clock ticks visually via hand rotation above */ }
     // dust drift
