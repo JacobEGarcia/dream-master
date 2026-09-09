@@ -119,7 +119,7 @@ const canvas = document.getElementById('c');
 const renderer = new THREE.WebGLRenderer({canvas, antialias:true, powerPreference:'high-performance'});
 renderer.setPixelRatio(Math.min(devicePixelRatio,2));
 renderer.setSize(innerWidth, innerHeight);
-renderer.outputColorSpace=THREE.SRGBColorSpace; renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.05; renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.outputColorSpace=THREE.SRGBColorSpace; renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.16; renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(64, innerWidth/innerHeight, .1, 600);
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
@@ -226,7 +226,7 @@ const SESSIONS=[
 let worldGroup=null, anchors=[], shark=null, particles=null;
 let gameState='title', sessIdx=0, coherence=100, shaped=0, time=0, lunging=false, shake=0, shapeHeldT=0;
 
-const hemi = new THREE.HemisphereLight(0xffc56e, 0x030303, .32);
+const hemi = new THREE.HemisphereLight(0xffc56e, 0x050302, .42);
 scene.add(hemi);
 const dirL = new THREE.DirectionalLight(0xffb24c, 1.8); dirL.castShadow=true; dirL.shadow.mapSize.set(1024,1024);
 dirL.position.set(20,40,10); scene.add(dirL);
@@ -262,7 +262,7 @@ function brutalistDream(def){
   const glow=new THREE.MeshBasicMaterial({color:def.build==='sea'?0x8fb8c9:0xffa62f,transparent:true,opacity:.09,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending});
   // monumental procession, framing a bright unreachable horizon
   for(const side of [-1,1]) for(let i=0;i<9;i++){
-    const z=10-i*13, h=12+(i%3)*5;
+    const z=4-i*13, h=12+(i%3)*5;
     const p=new THREE.Mesh(new THREE.BoxGeometry(2.8,h,6.5),i%2?amber:black);p.position.set(side*(11+(i%2)*3),h/2-1,z);p.castShadow=true;p.receiveShadow=true;worldGroup.add(p);
     const cap=new THREE.Mesh(new THREE.BoxGeometry(10,1.2,7),black);cap.position.set(side*10.5,h-1,z);cap.castShadow=true;worldGroup.add(cap);
   }
@@ -373,7 +373,7 @@ function buildWorld(def){
       const handM=new THREE.MeshBasicMaterial({color:A});
       const h1=new THREE.Mesh(new THREE.BoxGeometry(.3,4.4,.2),handM); h1.position.y=1.6; clock.add(h1);
       const h2=new THREE.Mesh(new THREE.BoxGeometry(.24,3.2,.2),handM); h2.rotation.z=Math.PI; h2.position.y=-1.2; clock.add(h2);
-      clock.position.set(0,11,-48); clock.rotation.x=.12; worldGroup.add(clock);
+      clock.position.set(0,19,-46); clock.rotation.x=.12; clock.scale.setScalar(.72); worldGroup.add(clock);
       worldGroup.userData.clock=clock; worldGroup.userData.clockHands=[h1,h2];
       addAnchor(10,1.4,-14,A); addAnchor(-18,1.4,6,A); addAnchor(26,1.4,18,A); addAnchor(-8,1.4,-34,A); addAnchor(2,1.4,30,A);
     }
