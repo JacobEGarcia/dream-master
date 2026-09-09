@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>THE DREAM MASTER</title>
+<style>
+  html,body{margin:0;padding:0;height:100%;overflow:hidden;background:#06060a;color:#e8e2d4;
+    font-family:Palatino,'Palatino Linotype',Georgia,serif;-webkit-user-select:none;user-select:none;}
+  #c{position:fixed;inset:0;display:block;}
+  .screen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    text-align:center;background:radial-gradient(ellipse at 50% 40%, rgba(20,18,34,.88), rgba(4,4,8,.97));
+    z-index:20;padding:24px;transition:opacity 1.2s;}
+  .hidden{opacity:0;pointer-events:none;}
+  h1{font-size:clamp(28px,6vw,64px);font-weight:normal;letter-spacing:.35em;margin:0 0 10px;text-indent:.35em;}
+  h2{font-size:clamp(20px,4vw,36px);font-weight:normal;letter-spacing:.25em;margin:0 0 8px;text-indent:.25em;}
+  .sub{font-style:italic;opacity:.7;letter-spacing:.1em;margin-bottom:28px;font-size:clamp(13px,2vw,17px);}
+  .body{max-width:620px;line-height:1.75;font-size:clamp(14px,2.2vw,17px);opacity:.9;margin-bottom:34px;white-space:pre-line;}
+  .btn{cursor:pointer;border:1px solid rgba(232,226,212,.5);padding:12px 42px;letter-spacing:.3em;text-indent:.3em;
+    font-size:14px;background:transparent;color:#e8e2d4;font-family:inherit;transition:all .3s;}
+  .btn:hover{background:rgba(232,226,212,.12);border-color:#e8e2d4;}
+  #hud{position:fixed;inset:0;z-index:10;pointer-events:none;display:none;}
+  #cohWrap{position:absolute;top:22px;left:50%;transform:translateX(-50%);width:min(420px,72vw);}
+  #cohLabel{font-size:11px;letter-spacing:.4em;text-align:center;opacity:.75;margin-bottom:6px;}
+  #cohBar{height:3px;background:rgba(232,226,212,.18);}
+  #cohFill{height:100%;width:100%;background:#d9c98a;transition:width .2s linear;}
+  #sessName{position:absolute;top:22px;left:24px;font-size:11px;letter-spacing:.3em;opacity:.7;}
+  #anchors{position:absolute;top:22px;right:24px;font-size:11px;letter-spacing:.3em;opacity:.7;}
+  #prompt{position:absolute;bottom:18%;left:50%;transform:translateX(-50%);font-size:13px;letter-spacing:.25em;
+    opacity:0;transition:opacity .3s;text-shadow:0 0 12px rgba(0,0,0,.8);}
+  #toast{position:absolute;top:38%;left:50%;transform:translateX(-50%);font-size:clamp(15px,2.6vw,22px);
+    letter-spacing:.2em;opacity:0;transition:opacity .8s;text-shadow:0 0 18px rgba(0,0,0,.9);font-style:italic;}
+  #warn{position:absolute;bottom:26%;left:50%;transform:translateX(-50%);font-size:12px;letter-spacing:.35em;
+    color:#c96a5e;opacity:0;transition:opacity .4s;}
+  #vig{position:fixed;inset:0;pointer-events:none;z-index:5;
+    background:radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,.55) 100%);}
+  #dmg{position:fixed;inset:0;pointer-events:none;z-index:6;background:radial-gradient(ellipse at center, transparent 40%, rgba(120,10,10,.5) 100%);opacity:0;transition:opacity .2s;}
+  #shapeBtn{position:fixed;bottom:36px;right:30px;width:96px;height:96px;border-radius:50%;border:1px solid rgba(232,226,212,.6);
+    background:rgba(232,226,212,.07);color:#e8e2d4;font-family:inherit;letter-spacing:.15em;font-size:12px;display:none;z-index:15;}
+  #joy{position:fixed;bottom:36px;left:30px;width:110px;height:110px;border-radius:50%;border:1px solid rgba(232,226,212,.35);display:none;z-index:15;}
+  #joyKnob{position:absolute;left:35px;top:35px;width:40px;height:40px;border-radius:50%;background:rgba(232,226,212,.25);}
+  .credit{position:absolute;bottom:20px;font-size:11px;letter-spacing:.2em;opacity:.4;}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="vig"></div><div id="dmg"></div>
+<div id="hud">
+  <div id="sessName"></div>
+  <div id="anchors"></div>
+  <div id="cohWrap"><div id="cohLabel">COHERENCE</div><div id="cohBar"><div id="cohFill"></div></div></div>
+  <div id="prompt">HOLD&nbsp;&nbsp;E&nbsp;&nbsp;TO&nbsp;&nbsp;SHAPE</div>
+  <div id="warn">SOMETHING SWIMS BELOW THE DREAM</div>
+  <div id="toast"></div>
+</div>
+<button id="shapeBtn">SHAPE</button>
+<div id="joy"><div id="joyKnob"></div></div>
+<div class="screen" id="scrTitle">
+  <h1>THE DREAM MASTER</h1>
+  <div class="sub">a game after Roger Zelazny, 1966</div>
+  <div class="body">You are Charles Render, a Shaper.
+Neuroparticipant therapist. You enter the dreams of the sick
+and you shape them toward wholeness.
+
+Every mind you enter is a world that wants a master.
+Do not become its subject.</div>
+  <button class="btn" id="btnStart">BEGIN THE SESSIONS</button>
+  <div class="credit">WASD move · mouse look · hold E to shape · three.js</div>
+</div>
+<div class="screen hidden" id="scrDossier">
+  <h2 id="dossTitle"></h2>
+  <div class="sub" id="dossSub"></div>
+  <div class="body" id="dossBody"></div>
+  <button class="btn" id="btnEnter">ENTER THE DREAM</button>
+</div>
+<div class="screen hidden" id="scrFail">
+  <h2>THE DREAM TURNS ON ITS ARCHITECT</h2>
+  <div class="sub">coherence lost — you withdraw, gasping, into the office light</div>
+  <div class="body">The patient sleeps on. The shaped things unshape themselves.
+You can go back in. A Shaper always goes back in.</div>
+  <button class="btn" id="btnRetry">RE-ENTER</button>
+</div>
+<div class="screen hidden" id="scrInter">
+  <h2 id="interTitle">INTEGRATION ACHIEVED</h2>
+  <div class="sub" id="interSub"></div>
+  <div class="body" id="interBody"></div>
+  <button class="btn" id="btnNext">NEXT PATIENT</button>
+</div>
+<div class="screen hidden" id="scrEnd">
+  <h1>DREAM MASTER</h1>
+  <div class="sub">after Roger Zelazny's The Dream Master (1966)</div>
+  <div class="body">Eileen Shallot stands at the rail of a dream that is finally hers.
+For one hour she has seen the moon on the water,
+and the shape of every thing the light has ever touched.
+
+You did not give her sight. No one could.
+You gave her the architecture of sight, and she built the rest herself,
+the way she has built everything, always, out of the dark.
+
+She will make a Shaper yet.</div>
+  <button class="btn" id="btnAgain">DREAM AGAIN</button>
+  <div class="credit">built with three.js · single file · jacobegarcia</div>
+</div>
+<script type="importmap">
+{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(innerWidth, innerHeight);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(72, innerWidth/innerHeight, .1, 600);
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+
+// ---------- audio ----------
+let AC=null, masterGain=null, droneOsc=null, droneGain=null;
+function audioInit(){
+  if(AC) return;
+  AC = new (window.AudioContext||window.webkitAudioContext)();
+  masterGain = AC.createGain(); masterGain.gain.value=.5; masterGain.connect(AC.destination);
+  droneOsc = AC.createOscillator(); droneOsc.type='sine'; droneOsc.frequency.value=55;
+  const o2 = AC.createOscillator(); o2.type='sine'; o2.frequency.value=55.7;
+  droneGain = AC.createGain(); droneGain.gain.value=.045;
+  droneOsc.connect(droneGain); o2.connect(droneGain); droneGain.connect(masterGain);
+  droneOsc.start(); o2.start();
+}
+function chime(f){
+  if(!AC) return;
+  const o=AC.createOscillator(), g=AC.createGain();
+  o.type='sine'; o.frequency.value=f||660;
+  g.gain.setValueAtTime(.001,AC.currentTime);
+  g.gain.exponentialRampToValueAtTime(.18,AC.currentTime+.02);
+  g.gain.exponentialRampToValueAtTime(.0001,AC.currentTime+1.4);
+  o.connect(g); g.connect(masterGain); o.start(); o.stop(AC.currentTime+1.5);
+}
+function lowPulse(){
+  if(!AC) return;
+  const o=AC.createOscillator(), g=AC.createGain();
+  o.type='triangle'; o.frequency.setValueAtTime(70,AC.currentTime);
+  o.frequency.exponentialRampToValueAtTime(38,AC.currentTime+.8);
+  g.gain.setValueAtTime(.12,AC.currentTime);
+  g.gain.exponentialRampToValueAtTime(.0001,AC.currentTime+.9);
+  o.connect(g); g.connect(masterGain); o.start(); o.stop(AC.currentTime+1);
+}
+function setDrone(f,g){ if(droneOsc&&AC){ droneOsc.frequency.linearRampToValueAtTime(f,AC.currentTime+2); droneGain.gain.linearRampToValueAtTime(g,AC.currentTime+2);} }
+
+// ---------- input ----------
+const keys={};
+let yaw=0, pitch=0, locked=false;
+const isTouch = matchMedia('(pointer:coarse)').matches;
+addEventListener('keydown',e=>keys[e.code]=true);
+addEventListener('keyup',e=>keys[e.code]=false);
+document.addEventListener('pointerlockchange',()=>{locked = document.pointerLockElement===canvas;});
+canvas.addEventListener('click',()=>{ if(gameState==='play' && !locked && !isTouch) canvas.requestPointerLock(); });
+addEventListener('mousemove',e=>{
+  if(!locked) return;
+  yaw -= e.movementX*.0021; pitch -= e.movementY*.0021;
+  pitch = Math.max(-1.45, Math.min(1.45, pitch));
+});
+const joy=document.getElementById('joy'), knob=document.getElementById('joyKnob'), shapeBtn=document.getElementById('shapeBtn');
+let joyVec={x:0,y:0}, joyId=null, lookId=null, lookLast=null, touchShape=false;
+if(isTouch){ joy.style.display='block'; shapeBtn.style.display='block'; }
+addEventListener('touchstart',e=>{
+  for(const t of e.changedTouches){
+    if(t.clientX<innerWidth/2 && t.clientY>innerHeight-220 && joyId===null){ joyId=t.identifier; }
+    else if(t.clientX>innerWidth/2 && lookId===null && t.target!==shapeBtn){ lookId=t.identifier; lookLast={x:t.clientX,y:t.clientY}; }
+  }
+},{passive:true});
+addEventListener('touchmove',e=>{
+  for(const t of e.changedTouches){
+    if(t.identifier===joyId){
+      const r=joy.getBoundingClientRect(), cx=r.left+55, cy=r.top+55;
+      let dx=(t.clientX-cx)/45, dy=(t.clientY-cy)/45;
+      const m=Math.hypot(dx,dy); if(m>1){dx/=m;dy/=m;}
+      joyVec={x:dx,y:dy}; knob.style.left=(35+dx*32)+'px'; knob.style.top=(35+dy*32)+'px';
+    } else if(t.identifier===lookId && lookLast){
+      yaw -= (t.clientX-lookLast.x)*.004; pitch -= (t.clientY-lookLast.y)*.004;
+      pitch = Math.max(-1.45, Math.min(1.45, pitch));
+      lookLast={x:t.clientX,y:t.clientY};
+    }
+  }
+},{passive:true});
+addEventListener('touchend',e=>{
+  for(const t of e.changedTouches){
+    if(t.identifier===joyId){joyId=null;joyVec={x:0,y:0};knob.style.left='35px';knob.style.top='35px';}
+    if(t.identifier===lookId){lookId=null;lookLast=null;}
+  }
+},{passive:true});
+shapeBtn.addEventListener('touchstart',e=>{e.preventDefault();touchShape=true;});
+shapeBtn.addEventListener('touchend',()=>touchShape=false);
+shapeBtn.addEventListener('mousedown',()=>touchShape=true);
+shapeBtn.addEventListener('mouseup',()=>touchShape=false);
+
+// ---------- sessions ----------
+const SESSIONS=[
+ { name:'SESSION I — THE CLERK', patient:'Mr. Ansel Voss, 51. Actuarial clerk.',
+   body:'He dreams the same dream every night: an endless grey plain,\nbroken columns, a clock that stopped at the hour of his birth.\nDiagnosis: a life unwitnessed. Shape the anchors.\nTeach the ruin it was once a temple.',
+   build:'ruins', drain:1.0, sharkAggro:.6,
+   fog:0x272b35, fogFar:130, sky:0x1a1e28, ground:0x363b46, accent:0x8fa3c4, warm:0x3a3f52,
+   win:'The clerk wakes remembering his own name.\nThe columns stand. The clock, impossibly, ticks.'},
+ { name:'SESSION II — THE AVIATRIX', patient:'Ms. Rilla Kane, 34. Test pilot, grounded.',
+   body:'She fell once, and the sky has not forgiven her.\nHer dream is a carnival above the clouds — rings, islands,\neverything bright and nothing held. Shape the anchors.\nShow her the sky still holds what flies in it.',
+   build:'sky', drain:1.35, sharkAggro:1.0,
+   fog:0x2a1830, fogFar:140, sky:0x1c0f26, ground:0x34203c, accent:0xe2a86a, warm:0x54304a,
+   win:'She wakes laughing — the first time in two years.\nSomewhere above the cloud-line, a ring keeps turning.'},
+ { name:'SESSION III — EILEEN SHALLOT', patient:'Miss Eileen Shallot, 27. Blind from birth.',
+   body:'She does not want to be healed. She wants to be a Shaper —\nto do for others what was done for her, though she has\nnever seen the things she would shape. Tonight you give her\nthe sea. Beware: what swims in it is hers and yours both.',
+   build:'sea', drain:1.6, sharkAggro:1.8,
+   fog:0x04070d, fogFar:110, sky:0x02040a, ground:0x0a1220, accent:0xbfd6e4, warm:0x16324a,
+   win:'', final:true}
+];
+
+// ---------- world ----------
+let worldGroup=null, anchors=[], shark=null, particles=null;
+let gameState='title', sessIdx=0, coherence=100, shaped=0, time=0, lunging=false, shake=0, shapeHeldT=0;
+
+const hemi = new THREE.HemisphereLight(0xffffff, 0x445566, 1.3);
+scene.add(hemi);
+const dirL = new THREE.DirectionalLight(0xffffff, .75);
+dirL.position.set(20,40,10); scene.add(dirL);
+
+function clearWorld(){
+  if(worldGroup){
+    scene.remove(worldGroup);
+    worldGroup.traverse(o=>{ if(o.geometry)o.geometry.dispose();
+      if(o.material){ (Array.isArray(o.material)?o.material:[o.material]).forEach(m=>m.dispose()); }});
+  }
+  worldGroup=new THREE.Group(); scene.add(worldGroup);
+  anchors=[]; shark=null; particles=null;
+}
+function makeGround(color, r){
+  const g=new THREE.CircleGeometry(r||90, 64);
+  const pos=g.attributes.position;
+  for(let i=0;i<pos.count;i++){
+    const x=pos.getX(i), y=pos.getY(i);
+    pos.setZ(i,(Math.sin(x*.14)*Math.cos(y*.17)+Math.sin(x*.05+y*.08))*.8);
+  }
+  g.computeVertexNormals();
+  const m=new THREE.Mesh(g,new THREE.MeshStandardMaterial({color,roughness:.9,metalness:.05}));
+  m.rotation.x=-Math.PI/2; worldGroup.add(m); return m;
+}
+function addAnchor(x,y,z,accent){
+  const geos=[new THREE.IcosahedronGeometry(.9,0), new THREE.TorusGeometry(.8,.22,10,24), new THREE.OctahedronGeometry(1)];
+  const m=new THREE.Mesh(geos[anchors.length%3],
+    new THREE.MeshStandardMaterial({color:0x111111,emissive:accent,emissiveIntensity:2.0,roughness:.3}));
+  m.position.set(x,y,z);
+  m.userData={shaped:false,progress:0,baseY:y,spin:.3+Math.random()*.5};
+  worldGroup.add(m); anchors.push(m);
+}
+function makeShark(aggro){
+  const g=new THREE.Group();
+  const bodyMat=new THREE.MeshStandardMaterial({color:0x05070c,roughness:.6,emissive:0x0a1520,emissiveIntensity:.4});
+  const body=new THREE.Mesh(new THREE.ConeGeometry(.7,4.2,8),bodyMat);
+  body.rotation.x=Math.PI/2; g.add(body);
+  const fin=new THREE.Mesh(new THREE.ConeGeometry(.5,1.4,4),bodyMat);
+  fin.position.set(0,.9,.3); g.add(fin);
+  const eyeMat=new THREE.MeshBasicMaterial({color:0xc94040});
+  const e1=new THREE.Mesh(new THREE.SphereGeometry(.07),eyeMat); e1.position.set(.28,.12,1.6); g.add(e1);
+  const e2=e1.clone(); e2.position.x=-.28; g.add(e2);
+  g.userData={aggro,angle:Math.random()*6.28,r:16,speed:.28*aggro,lungeCd:14/aggro};
+  worldGroup.add(g); return g;
+}
+function makeDust(color,n,spread,h){
+  n=n||420; spread=spread||90; h=h||26;
+  const pos=new Float32Array(n*3);
+  for(let i=0;i<n;i++){ pos[i*3]=(Math.random()-.5)*spread*2; pos[i*3+1]=Math.random()*h; pos[i*3+2]=(Math.random()-.5)*spread*2; }
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  const p=new THREE.Points(g,new THREE.PointsMaterial({color,size:.14,transparent:true,opacity:.6}));
+  worldGroup.add(p); return p;
+}
+function buildWorld(def){
+  clearWorld();
+  scene.fog=new THREE.Fog(def.fog,8,def.fogFar);
+  scene.background=new THREE.Color(def.sky);
+  const A=def.accent;
+  if(def.build==='sea'){
+    makeGround(0x000000,1); // placeholder removed below
+    worldGroup.remove(worldGroup.children[worldGroup.children.length-1]);
+    const w=new THREE.Mesh(new THREE.CircleGeometry(160,64),
+      new THREE.MeshStandardMaterial({color:0x061224,roughness:.15,metalness:.7,transparent:true,opacity:.92}));
+    w.rotation.x=-Math.PI/2; w.position.y=-1.2; worldGroup.add(w); worldGroup.userData.water=w;
+    const deck=new THREE.Mesh(new THREE.CylinderGeometry(16,18,1.6,24),
+      new THREE.MeshStandardMaterial({color:0x1a2233,roughness:.8}));
+    deck.position.y=-.8; worldGroup.add(deck);
+    const moon=new THREE.Mesh(new THREE.SphereGeometry(7,24,24),new THREE.MeshBasicMaterial({color:0xdfeaf2}));
+    moon.position.set(30,42,-90); worldGroup.add(moon);
+    const ml=new THREE.PointLight(0xbfd6e4,60,300); ml.position.copy(moon.position); worldGroup.add(ml);
+    for(let i=0;i<8;i++){
+      const a=i/8*6.28, r=26+Math.random()*30;
+      const pil=new THREE.Mesh(new THREE.CylinderGeometry(.5,.8,14+Math.random()*10,8),
+        new THREE.MeshStandardMaterial({color:0x0c1826,emissive:0x2a4a66,emissiveIntensity:.5,transparent:true,opacity:.8}));
+      pil.position.set(Math.cos(a)*r,6,Math.sin(a)*r); worldGroup.add(pil);
+    }
+    addAnchor(8,1.5,-8,A); addAnchor(-10,1.5,-6,A); addAnchor(12,1.5,6,A); addAnchor(-12,1.5,9,A);
+    addAnchor(0,1.5,-13,A); addAnchor(6,1.5,12,A); addAnchor(-5,1.5,0,A);
+  } else {
+    makeGround(def.ground, def.build==='sky'?60:90);
+    if(def.build==='ruins'){
+      for(let i=0;i<26;i++){
+        const a=Math.random()*6.28, r=12+Math.random()*65;
+        const h=3+Math.random()*9, broken=Math.random()<.5;
+        const col=new THREE.Mesh(new THREE.CylinderGeometry(.7,.9,broken?h*.4:h,10),
+          new THREE.MeshStandardMaterial({color:0x4b5262,roughness:.85}));
+        col.position.set(Math.cos(a)*r,(broken?h*.2:h/2),Math.sin(a)*r);
+        col.rotation.z=(Math.random()-.5)*.14; worldGroup.add(col);
+      }
+      const clock=new THREE.Group();
+      const face=new THREE.Mesh(new THREE.CylinderGeometry(6,6,.5,40),
+        new THREE.MeshStandardMaterial({color:0x2a2e38,roughness:.5}));
+      face.rotation.x=Math.PI/2; clock.add(face);
+      const handM=new THREE.MeshBasicMaterial({color:A});
+      const h1=new THREE.Mesh(new THREE.BoxGeometry(.3,4.4,.2),handM); h1.position.y=1.6; clock.add(h1);
+      const h2=new THREE.Mesh(new THREE.BoxGeometry(.24,3.2,.2),handM); h2.rotation.z=Math.PI; h2.position.y=-1.2; clock.add(h2);
+      clock.position.set(0,11,-48); clock.rotation.x=.12; worldGroup.add(clock);
+      worldGroup.userData.clock=clock; worldGroup.userData.clockHands=[h1,h2];
+      addAnchor(10,1.4,-14,A); addAnchor(-18,1.4,6,A); addAnchor(26,1.4,18,A); addAnchor(-8,1.4,-34,A); addAnchor(2,1.4,30,A);
+    }
+    if(def.build==='sky'){
+      const isles=[];
+      for(let i=0;i<14;i++){
+        const a=Math.random()*6.28, r=14+Math.random()*48, y=6+Math.random()*22;
+        const isle=new THREE.Mesh(new THREE.ConeGeometry(2.5+Math.random()*3,5+Math.random()*5,7),
+          new THREE.MeshStandardMaterial({color:0x4a2f52,roughness:.8,flatShading:true}));
+        isle.rotation.x=Math.PI; isle.position.set(Math.cos(a)*r,y,Math.sin(a)*r);
+        isle.userData.ph=Math.random()*6.28; worldGroup.add(isle); isles.push(isle);
+      }
+      worldGroup.userData.isles=isles;
+      const rings=[];
+      for(let i=0;i<5;i++){
+        const ring=new THREE.Mesh(new THREE.TorusGeometry(6+i*2.2,.3,10,60),
+          new THREE.MeshStandardMaterial({color:0x201226,emissive:A,emissiveIntensity:.5,roughness:.4}));
+        ring.position.set(0,14+i*4,-30-i*6); ring.rotation.x=Math.PI/2.3;
+        ring.userData.spin=.1+i*.05; worldGroup.add(ring); rings.push(ring);
+      }
+      worldGroup.userData.rings=rings;
+      addAnchor(9,1.5,-10,A); addAnchor(-14,1.5,-16,A); addAnchor(20,1.5,8,A);
+      addAnchor(-24,1.5,14,A); addAnchor(4,1.5,-34,A); addAnchor(-4,1.5,32,A);
+    }
+  }
+  particles=makeDust(A);
+  shark=makeShark(def.sharkAggro);
+  worldGroup.userData.warm=new THREE.Color(def.warm);
+  worldGroup.userData.coldFog=new THREE.Color(def.fog);
+  worldGroup.userData.def=def;
+}
+
+// ---------- HUD ----------
+const $=id=>document.getElementById(id);
+const hud=$('hud'), cohFill=$('cohFill'), promptEl=$('prompt'), warnEl=$('warn'), toastEl=$('toast'), dmgEl=$('dmg');
+function show(id){ $(id).classList.remove('hidden'); }
+function hide(id){ $(id).classList.add('hidden'); }
+function toast(t,ms){ toastEl.textContent=t; toastEl.style.opacity=1; clearTimeout(toastEl._t); toastEl._t=setTimeout(()=>toastEl.style.opacity=0, ms||3200); }
+
+// ---------- flow ----------
+function startSession(i){
+  sessIdx=i; const def=SESSIONS[i];
+  $('dossTitle').textContent=def.name;
+  $('dossSub').textContent=def.patient;
+  $('dossBody').textContent=def.body;
+  hide('scrTitle'); hide('scrInter'); hide('scrFail'); hide('scrEnd'); show('scrDossier');
+  gameState='dossier';
+}
+function enterDream(){
+  const def=SESSIONS[sessIdx];
+  buildWorld(def);
+  coherence=100; shaped=0; time=0; lunging=false; shake=0; shapeHeldT=0;
+  yaw=0; pitch=0; camera.position.set(0,1.7,14); camera.rotation.z=0;
+  $('sessName').textContent=def.name;
+  $('anchors').textContent='ANCHORS 0 / '+anchors.length;
+  hide('scrDossier'); hud.style.display='block'; gameState='play';
+  if(!isTouch) canvas.requestPointerLock();
+  setDrone(55 - sessIdx*8, .045);
+  toast(def.build==='sea' ? 'the sea at night. her sea.' : def.build==='sky' ? 'the carnival above the clouds' : 'the grey plain. the stopped clock.');
+}
+function winSession(){
+  const def=SESSIONS[sessIdx];
+  gameState='inter'; hud.style.display='none';
+  if(document.pointerLockElement) document.exitPointerLock();
+  chime(880);
+  if(def.final){
+    show('scrEnd'); gameState='end'; setDrone(66,.05);
+  } else {
+    $('interSub').textContent=def.patient;
+    $('interBody').textContent=def.win;
+    show('scrInter');
+  }
+}
+function failSession(){
+  gameState='fail'; hud.style.display='none';
+  if(document.pointerLockElement) document.exitPointerLock();
+  lowPulse(); show('scrFail');
+}
+
+$('btnStart').addEventListener('click',()=>{ audioInit(); startSession(0); });
+$('btnEnter').addEventListener('click',()=>{ audioInit(); enterDream(); });
+$('btnRetry').addEventListener('click',()=>{ hide('scrFail'); enterDream(); });
+$('btnNext').addEventListener('click',()=>{ startSession(sessIdx+1); });
+$('btnAgain').addEventListener('click',()=>{ hide('scrEnd'); startSession(0); });
+
+// ---------- loop ----------
+const clockT=new THREE.Clock();
+const fwd=new THREE.Vector3(), rgt=new THREE.Vector3(), tmpV=new THREE.Vector3();
+
+function animate(){
+  requestAnimationFrame(animate);
+  const dt=Math.min(clockT.getDelta(),.05);
+  time+=dt;
+
+  if(gameState==='play'){
+    const def=SESSIONS[sessIdx];
+    // look
+    camera.rotation.order='YXZ';
+    camera.rotation.y=yaw; camera.rotation.x=pitch;
+    // move
+    let mx=0,mz=0;
+    if(keys['KeyW']||keys['ArrowUp'])mz+=1;
+    if(keys['KeyS']||keys['ArrowDown'])mz-=1;
+    if(keys['KeyA']||keys['ArrowLeft'])mx-=1;
+    if(keys['KeyD']||keys['ArrowRight'])mx+=1;
+    mx+=joyVec.x; mz-=joyVec.y;
+    const ml=Math.hypot(mx,mz); if(ml>1){mx/=ml;mz/=ml;}
+    const run=(keys['ShiftLeft']||keys['ShiftRight'])?1.7:1;
+    const spd=8*run;
+    fwd.set(-Math.sin(yaw),0,-Math.cos(yaw));
+    rgt.set(Math.cos(yaw),0,-Math.sin(yaw));
+    camera.position.addScaledVector(fwd,mz*spd*dt);
+    camera.position.addScaledVector(rgt,mx*spd*dt);
+    // bounds
+    const boundR = def.build==='sea'?14:def.build==='sky'?56:80;
+    tmpV.set(camera.position.x,0,camera.position.z);
+    if(tmpV.length()>boundR){ tmpV.setLength(boundR); camera.position.x=tmpV.x; camera.position.z=tmpV.z; }
+    camera.position.y=1.7+Math.sin(time*2.2)*.05;
+
+    // shark
+    const s=shark, su=s.userData;
+    su.lungeCd-=dt;
+    if(!lunging && su.lungeCd<=0 && shaped>0){ lunging=true; su.lungeT=0; lowPulse(); warnEl.style.opacity=1; setTimeout(()=>warnEl.style.opacity=0,2400); }
+    if(lunging){
+      su.lungeT+=dt;
+      tmpV.copy(camera.position).sub(s.position); tmpV.y=0;
+      const d=tmpV.length();
+      if(d>.3){ tmpV.normalize(); s.position.addScaledVector(tmpV, dt*(10+su.aggro*4)); s.lookAt(camera.position.x, s.position.y, camera.position.z); }
+      if(d<3 && !su.hitDone){ su.hitDone=true; coherence-=8+su.aggro*4; shake=.6; dmgEl.style.opacity=1; setTimeout(()=>dmgEl.style.opacity=0,500); }
+      if(su.lungeT>4){ lunging=false; su.hitDone=false; su.lungeCd=(12+Math.random()*8)/su.aggro; su.r=16; su.angle=Math.atan2(s.position.z-camera.position.z, s.position.x-camera.position.x); }
+    } else {
+      su.angle+=su.speed*dt;
+      su.r=16+Math.sin(time*.4)*3;
+      s.position.set(camera.position.x+Math.cos(su.angle)*su.r, 1+Math.sin(time*1.3)*.5, camera.position.z+Math.sin(su.angle)*su.r);
+      s.rotation.y=-su.angle;
+      s.visible = shaped>0; // the id stirs only once the work begins
+    }
+    const sd=s.position.distanceTo(camera.position);
+    const near = s.visible ? Math.max(0, 1 - sd/14) : 0;
+
+    // coherence
+    coherence -= dt*(def.drain + near*5*su.aggro);
+    cohFill.style.width=Math.max(0,coherence)+'%';
+    cohFill.style.background = coherence<30 ? '#c96a5e' : '#d9c98a';
+    if(coherence<=0){ failSession(); }
+
+    // shaping
+    const shapeKey = keys['KeyE']||keys['Space']||touchShape;
+    let target=null, best=6;
+    for(const a of anchors){
+      if(a.userData.shaped) continue;
+      const d=a.position.distanceTo(camera.position);
+      if(d<best){
+        tmpV.copy(a.position).sub(camera.position).normalize();
+        camera.getWorldDirection(rgt);
+        if(tmpV.dot(rgt)>.45){ target=a; best=d; }
+      }
+    }
+    if(target){
+      promptEl.style.opacity=1;
+      if(shapeKey){
+        target.userData.progress+=dt/1.6;
+        target.scale.setScalar(1+Math.sin(time*20)*.08);
+        if(target.userData.progress>=1){
+          target.userData.shaped=true; shaped++;
+          target.material.emissive.set(0xffe9a8); target.material.emissiveIntensity=2.2;
+          chime(520+shaped*90);
+          coherence=Math.min(100,coherence+16);
+          $('anchors').textContent='ANCHORS '+shaped+' / '+anchors.length;
+          const lines=['an anchor holds.','the dream steadies.','shape takes.','the patient breathes easier, somewhere above.'];
+          toast(lines[Math.floor(Math.random()*lines.length)],1800);
+          // world warms as you shape
+          const k=shaped/anchors.length;
+          scene.fog.color.lerpColors(worldGroup.userData.coldFog, worldGroup.userData.warm, k*.8);
+          if(def.build==='ruins' && worldGroup.userData.clock){
+            const hands=worldGroup.userData.clockHands;
+            hands[0].rotation.z=k*2.4; hands[1].rotation.z=Math.PI+k*7;
+          }
+          if(shaped>=anchors.length){ setTimeout(winSession, 900); }
+        }
+      } else {
+        target.userData.progress=Math.max(0,target.userData.progress-dt*.5);
+        target.scale.setScalar(1);
+      }
+    } else {
+      promptEl.style.opacity=0;
+    }
+
+    // anchor idle motion
+    for(const a of anchors){
+      if(a.userData.shaped){ a.rotation.y+=dt*1.5; a.position.y=a.userData.baseY+Math.sin(time*2+a.userData.spin*10)*.15; }
+      else { a.rotation.y+=dt*a.userData.spin; a.rotation.x+=dt*a.userData.spin*.6; a.position.y=a.userData.baseY+Math.sin(time*1.5+a.userData.spin*10)*.25;
+        a.material.emissiveIntensity=1.6+Math.sin(time*3+a.userData.spin*7)*.5; }
+    }
+    // per-world ambient motion
+    const ud=worldGroup.userData;
+    if(ud.isles) for(const is of ud.isles){ is.position.y=10+Math.sin(time*.5+is.userData.ph)*1.5+is.userData.ph; }
+    if(ud.rings) for(const r of ud.rings){ r.rotation.z+=dt*r.userData.spin; }
+    if(ud.water){ ud.water.position.y=-1.2+Math.sin(time*.8)*.12; ud.water.rotation.z+=dt*.01; }
+    if(ud.clock && shaped>=anchors.length-0){ /* clock ticks visually via hand rotation above */ }
+    // dust drift
+    if(particles){ particles.rotation.y+=dt*.02; }
+    // instability wobble as coherence falls
+    const wob=(1-coherence/100);
+    camera.rotation.z=Math.sin(time*3)*wob*.02;
+    if(shake>0){ camera.position.x+=(Math.random()-.5)*shake; camera.position.y+=(Math.random()-.5)*shake; shake*=Math.pow(.02,dt); }
+    // drone tension
+    if(AC&&droneGain) droneGain.gain.value=.04+wob*.05+near*.03;
+  }
+
+  if(worldGroup && gameState!=='play'){
+    // idle drift behind screens
+    camera.rotation.y+=dt*.02;
+  }
+  renderer.render(scene,camera);
+}
+// idle title backdrop
+buildWorld(SESSIONS[2]);
+camera.position.set(0,6,26); camera.lookAt(0,4,-40);
+animate();
+</script>
+</body>
+</html>
